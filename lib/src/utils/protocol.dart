@@ -21,13 +21,13 @@ enum Server {
 }
 
 enum GameState {
-  menu,
+  inventory,
 }
 
 enum GameAction {
-  namedAction,
+  swapItem,
 }
 
 enum GameUpdate {
-  namedUpdate,
+  map,
 }

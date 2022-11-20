@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../layouts/menu_layout.dart';
+import '../layouts/inventory_layout.dart';
 
 import '../utils/connection.dart';
 import '../utils/protocol.dart';
@@ -52,6 +52,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 197, 197, 197),
       body: GestureDetector(
         onTapDown: _screen ? _setTimer : _resetTimer,
         behavior: HitTestBehavior.opaque,
@@ -65,8 +66,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             final data = received.sublist(2);
 
             switch (GameState.values[message]) {
-              case GameState.menu:
-                return MenuLayout(
+              case GameState.inventory:
+                return InventoryLayout(
                   widget.socket,
                   widget.address,
                   data,

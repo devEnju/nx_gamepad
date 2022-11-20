@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
     _connection = address;
 
     widget.socket.send(
-      <int>[Client.state.value, GameState.menu.index],
+      <int>[Client.state.value, GameState.inventory.index],
       address,
       Connection.port,
     );
