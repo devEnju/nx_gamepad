@@ -2,13 +2,17 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 
 // const _eventChannel = EventChannel('com.marvinvogl.nx_gamepad/event');
 const _methodChannel = MethodChannel('com.marvinvogl.nx_gamepad/method');
 
 class Connection {
+  static final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
   static const int port = 44700;
+
+  static BuildContext? get context => key.currentContext; 
 
   static Future<bool?> setAddress(InternetAddress connection) async {
     if (Platform.isWindows || Platform.isMacOS) {

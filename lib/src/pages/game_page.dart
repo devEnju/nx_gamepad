@@ -16,9 +16,9 @@ class GamePage extends StatefulWidget {
 
   final StatePacket initial;
 
-  static void open(BuildContext context, StatePacket packet) {
+  static void open(StatePacket packet) {
     WidgetsBinding.instance.addPostFrameCallback(
-      (timeStamp) => Navigator.of(context).push(
+      (timeStamp) => Navigator.of(Connection.context!).push(
         MaterialPageRoute(
           builder: (context) => GamePage(packet),
         ),
@@ -102,12 +102,10 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     _timer.cancel();
+    _provider.resetConnection();
     WidgetsBinding.instance.removeObserver(this);
     Connection.turnScreenOn();
     Connection.resetAddress();
-    _provider.service.stateController!.close();
-    _provider.service.stateController = null;
-    _provider.service.connection = null;
     super.dispose();
   }
 

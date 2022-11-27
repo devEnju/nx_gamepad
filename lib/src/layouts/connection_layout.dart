@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../providers/stream_provider.dart';
 
-import '../utils/connection.dart';
-import '../utils/protocol.dart';
-
-class ConnectionLayout extends StatelessWidget {
+class ConnectionLayout extends StatefulWidget {
   const ConnectionLayout(
     this.addresses, {
     super.key,
@@ -16,30 +13,32 @@ class ConnectionLayout extends StatelessWidget {
   final Set<InternetAddress> addresses;
 
   @override
+  State<ConnectionLayout> createState() => _ConnectionLayoutState();
+}
+
+class _ConnectionLayoutState extends State<ConnectionLayout> {
+  late final StreamProvider _provider;
+
+  @override
+  void didChangeDependencies() {
+    _provider = StreamProvider.of(context);
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: addresses.map<Widget>((address) => _buildTextButton(context, address)).toList(),
+        children: widget.addresses.map<Widget>(_buildTextButton).toList(),
       ),
     );
   }
 
-  Widget _buildTextButton(BuildContext context, InternetAddress address) {
+  Widget _buildTextButton(InternetAddress address) {
     return TextButton(
-      onPressed: () => _selectConnection(context, address),
+      onPressed: () => _provider.selectConnection(address),
       child: Text(address.address),
-    );
-  }
-
-  void _selectConnection(BuildContext context, InternetAddress address) {
-    final provider = StreamProvider.of(context);
-    provider.service.connection = address;
-
-    provider.socket.send(
-      <int>[Client.state.value, GameState.menu.index],
-      address,
-      Connection.port,
     );
   }
 }

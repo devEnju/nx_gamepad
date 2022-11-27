@@ -8,6 +8,8 @@ import 'src/app.dart';
 
 import 'src/providers/stream_provider.dart';
 
+import 'src/services/stream_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -22,6 +24,7 @@ Future<void> main() async {
     StreamProvider(
       socket,
       StreamController(),
+      StreamService(),
       child: const App(),
     ),
   );
