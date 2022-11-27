@@ -1,35 +1,44 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../layouts/menu_layout.dart';
+
+import '../models/server_packet.dart';
+
+import '../providers/stream_provider.dart';
 
 import '../utils/connection.dart';
 import '../utils/protocol.dart';
 
 class GamePage extends StatefulWidget {
-  const GamePage(
-    this.socket,
-    this.address,
-    this.initial,
-    this.controller,
-    this.onDispose, {
-    super.key,
-  });
+  const GamePage(this.initial, {super.key});
 
-  final RawDatagramSocket socket;
-  final InternetAddress address;
-  final Uint8List initial;
-  final StreamController<Uint8List> controller;
-  final void Function() onDispose;
+  final StatePacket initial;
+
+  static void open(BuildContext context, StatePacket packet) {
+    WidgetsBinding.instance.addPostFrameCallback(
+      (timeStamp) => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => GamePage(packet),
+        ),
+      ),
+    );
+  }
+
+  static void close(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(
+      (timeStamp) => Navigator.of(context).pop(),
+    );
+  }
 
   @override
   State<GamePage> createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
+  late final StreamProvider _provider;
+
   late bool _screen;
   late Timer _timer;
 
@@ -50,27 +59,26 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    _provider = StreamProvider.of(context);
+    super.didChangeDependencies();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
-        onTapDown: _screen ? _setTimer : _resetTimer,
-        behavior: HitTestBehavior.opaque,
-        child: StreamBuilder<Uint8List>(
+    return GestureDetector(
+      onTapDown: _screen ? _setTimer : _resetTimer,
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        body: StreamBuilder<StatePacket>(
           initialData: widget.initial,
-          stream: widget.controller.stream,
+          stream: _provider.stream,
           builder: (context, snapshot) {
-            final received = snapshot.data!;
+            final StatePacket packet = snapshot.data!;
 
-            final message = received[1];
-            final data = received.sublist(2);
-
-            switch (GameState.values[message]) {
+            switch (packet.state) {
               case GameState.menu:
-                return MenuLayout(
-                  widget.socket,
-                  widget.address,
-                  data,
-                );
+                return MenuLayout(packet.data);
               default:
                 return ErrorWidget.withDetails(
                   message: 'Received unkown state.',
@@ -94,10 +102,12 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     _timer.cancel();
-    Connection.methodChannel.invokeMethod<bool>('turnScreenOn');
     WidgetsBinding.instance.removeObserver(this);
-    widget.controller.close();
-    widget.onDispose();
+    Connection.turnScreenOn();
+    Connection.resetAddress();
+    _provider.service.stateController!.close();
+    _provider.service.stateController = null;
+    _provider.service.connection = null;
     super.dispose();
   }
 
@@ -113,12 +123,10 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleScreenBrightness(bool state) async {
-    const channel = Connection.methodChannel;
-
     if (state) {
-      _screen = await channel.invokeMethod<bool>('turnScreenOn') ?? _screen;
+      _screen = await Connection.turnScreenOn() ?? _screen;
     } else {
-      _screen = await channel.invokeMethod<bool>('turnScreenOff') ?? _screen;
+      _screen = await Connection.turnScreenOff() ?? _screen;
     }
     setState(() {});
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,7 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'src/app.dart';
 
-import 'src/utils/connection.dart';
+import 'src/providers/stream_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,10 +16,13 @@ Future<void> main() async {
     <DeviceOrientation>[DeviceOrientation.landscapeLeft],
   );
 
-  final socket = await RawDatagramSocket.bind(
-    InternetAddress.anyIPv4,
-    Connection.port,
-  );
+  final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
 
-  runApp(App(socket));
+  runApp(
+    StreamProvider(
+      socket,
+      StreamController(),
+      child: const App(),
+    ),
+  );
 }

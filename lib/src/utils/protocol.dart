@@ -20,12 +20,12 @@ enum Server {
   final int value;
 }
 
-enum GameState {
-  menu,
-}
-
 enum GameAction {
   namedAction,
+}
+
+enum GameState {
+  menu,
 }
 
 enum GameUpdate {
