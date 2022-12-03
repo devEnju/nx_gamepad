@@ -1,50 +1,44 @@
-
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
-
 
 // const _eventChannel = EventChannel('com.marvinvogl.nx_gamepad/event');
 const _methodChannel = MethodChannel('com.marvinvogl.nx_gamepad/method');
 
 class Connection {
-  static final GlobalKey<NavigatorState> key = GlobalKey<NavigatorState>();
   static const int port = 44700;
 
-  static BuildContext? get context => key.currentContext; 
+  static final loopback = InternetAddress('127.0.0.1');
+  static final broadcast = InternetAddress('255.255.255.255');
 
-  static Future<bool?> setAddress(InternetAddress connection) async {
-    if (Platform.isWindows || Platform.isMacOS) {
-      return true;
-    }
-    return _methodChannel.invokeMethod<bool>(
+  static Future<bool?> setAddress(InternetAddress connection) {
+    return _platform(
       'setAddress',
-      <String, String>{
+      arguments: <String, String>{
         'address': connection.address,
         'port': '$port',
       },
+      substitute: true,
     );
   }
 
-  static Future<bool?> resetAddress() async {
-    if (Platform.isWindows || Platform.isMacOS) {
-      return true;
-    }
-    return _methodChannel.invokeMethod<bool>('resetAddress');
+  static Future<bool?> resetAddress() => _platform('resetAddress');
+
+  static Future<bool?> toggleScreenBrightness(bool state) {
+    return state ? _platform('turnScreenOn') : _platform('turnScreenOff');
   }
 
-  static Future<bool?> turnScreenOn() async {
-    if (Platform.isWindows || Platform.isMacOS) {
-      return true;
+  static Future<T?> _platform<T>(
+    String method, {
+    dynamic arguments,
+    T? substitute,
+  }) async {
+    try {
+      return await _methodChannel.invokeMethod<T>(method, arguments);
+    } on MissingPluginException {
+      return substitute;
+    } catch (e) {
+      rethrow;
     }
-    return _methodChannel.invokeMethod<bool>('turnScreenOn');
-  }
-
-  static Future<bool?> turnScreenOff() async {
-    if (Platform.isWindows || Platform.isMacOS) {
-      return true;
-    }
-    return _methodChannel.invokeMethod<bool>('turnScreenOff');
   }
 }

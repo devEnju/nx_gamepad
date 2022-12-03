@@ -1,16 +1,20 @@
 import 'dart:io';
 
-import '../utils/protocol.dart';
+import '../utils/connection.dart';
 
 class ConnectionPacket {
   ConnectionPacket(Datagram datagram)
       : address = datagram.address,
         action = datagram.data[0],
-        data = datagram.data.sublist(1);
+        data = String.fromCharCodes(datagram.data.sublist(1));
+
+  ConnectionPacket.problem(this.data)
+      : address = Connection.loopback,
+        action = 0;
 
   final InternetAddress address;
   final int action;
-  final List<int> data;
+  final String data;
 }
 
 class StatePacket {
@@ -29,4 +33,38 @@ class UpdatePacket {
 
   final GameUpdate update;
   final List<int> data;
+}
+
+enum Client {
+  action(1),
+  broadcast(3),
+  state(5),
+  update(7);
+
+  const Client(this.value);
+
+  final int value;
+}
+
+enum Server {
+  info(1),
+  quit(2),
+  state(4),
+  update(6);
+
+  const Server(this.value);
+
+  final int value;
+}
+
+enum GameAction {
+  getState,
+}
+
+enum GameState {
+  menu,
+}
+
+enum GameUpdate {
+  namedUpdate,
 }

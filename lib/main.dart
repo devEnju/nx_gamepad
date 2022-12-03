@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 import 'src/app.dart';
 
-import 'src/providers/stream_provider.dart';
+import 'src/pages/game_page.dart';
 
-import 'src/services/stream_service.dart';
+import 'src/providers/stream_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,9 +22,13 @@ Future<void> main() async {
 
   runApp(
     StreamProvider(
-      socket,
-      StreamController(),
-      StreamService(),
+      StreamService(
+        socket,
+        socket.map<Datagram?>(
+          (event) => (event == RawSocketEvent.read) ? socket.receive() : null,
+        ),
+        open: GamePage.open,
+      ),
       child: const App(),
     ),
   );

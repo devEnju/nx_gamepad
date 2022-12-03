@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../app.dart';
+
 import '../layouts/menu_layout.dart';
 
-import '../models/server_packet.dart';
+import '../models/protocol.dart';
 
 import '../providers/stream_provider.dart';
 
 import '../utils/connection.dart';
-import '../utils/protocol.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage(this.initial, {super.key});
@@ -18,7 +19,7 @@ class GamePage extends StatefulWidget {
 
   static void open(StatePacket packet) {
     WidgetsBinding.instance.addPostFrameCallback(
-      (timeStamp) => Navigator.of(Connection.context!).push(
+      (timeStamp) => Navigator.of(App.context!).push(
         MaterialPageRoute(
           builder: (context) => GamePage(packet),
         ),
@@ -26,9 +27,9 @@ class GamePage extends StatefulWidget {
     );
   }
 
-  static void close(BuildContext context) {
+  static void close() {
     WidgetsBinding.instance.addPostFrameCallback(
-      (timeStamp) => Navigator.of(context).pop(),
+      (timeStamp) => Navigator.of(App.context!).pop(),
     );
   }
 
@@ -74,16 +75,21 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
           initialData: widget.initial,
           stream: _provider.stream,
           builder: (context, snapshot) {
-            final StatePacket packet = snapshot.data!;
+            if (snapshot.hasData) {
+              final StatePacket packet = snapshot.data!;
 
-            switch (packet.state) {
-              case GameState.menu:
-                return MenuLayout(packet.data);
-              default:
-                return ErrorWidget.withDetails(
-                  message: 'Received unkown state.',
-                );
+              switch (packet.state) {
+                case GameState.menu:
+                  return MenuLayout(packet.data);
+                default:
+                  return ErrorWidget.withDetails(
+                    message: 'Received unkown state',
+                  );
+              }
             }
+            return ErrorWidget.withDetails(
+              message: 'Stream is null',
+            );
           },
         ),
       ),
@@ -104,7 +110,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     _timer.cancel();
     _provider.resetConnection();
     WidgetsBinding.instance.removeObserver(this);
-    Connection.turnScreenOn();
+    Connection.toggleScreenBrightness(true);
     Connection.resetAddress();
     super.dispose();
   }
@@ -121,11 +127,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleScreenBrightness(bool state) async {
-    if (state) {
-      _screen = await Connection.turnScreenOn() ?? _screen;
-    } else {
-      _screen = await Connection.turnScreenOff() ?? _screen;
-    }
+    _screen = await Connection.toggleScreenBrightness(state) ?? _screen;
     setState(() {});
   }
 }

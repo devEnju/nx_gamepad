@@ -3,37 +3,25 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
-import '../models/server_packet.dart';
-
-import '../pages/game_page.dart';
-
-import '../services/stream_service.dart';
+import '../models/protocol.dart';
 
 import '../utils/connection.dart';
-import '../utils/protocol.dart';
 
 class StreamProvider extends InheritedWidget {
-  StreamProvider(
-    this._socket,
-    this.controller,
+  const StreamProvider(
     this._service, {
     super.key,
     required super.child,
-  }) {
-    _socket.listen(_onData);
-  }
+  });
 
-  final RawDatagramSocket _socket;
-  final StreamController<ConnectionPacket> controller;
   final StreamService _service;
 
-  final updateControllerList = List<StreamController<List<int>>?>.filled(
-    GameUpdate.values.length,
-    null,
-  );
+  StreamController<ConnectionPacket> get controller => _service.controller;
 
-  InternetAddress get connection => _service.connection!;
-  Stream<StatePacket> get stream => _service.controller!.stream;
+  InternetAddress? get connection => _service.connection;
+  Stream<StatePacket>? get stream => _service.state?.stream;
+
+  Stream<UpdatePacket>? operator [](int i) => _service.update[i]?.stream;
 
   static StreamProvider of(BuildContext context) {
     final result = context.dependOnInheritedWidgetOfExactType<StreamProvider>();
@@ -44,70 +32,164 @@ class StreamProvider extends InheritedWidget {
   @override
   bool updateShouldNotify(InheritedWidget oldWidget) => false;
 
-  void _onData(RawSocketEvent event) {
-    if (event == RawSocketEvent.read) {
-      final datagram = _socket.receive();
+  void broadcastGamepad(List<int> code) {
+    _service.broadcastGamepad(code);
+  }
 
-      if (datagram != null && datagram.data.isNotEmpty) {
-        final int message = datagram.data[0];
+  void selectConnection(InternetAddress address) {
+    _service.selectConnection(address);
+  }
 
-        if (message < 4) {
-          controller.add(ConnectionPacket(datagram));
-        } else if (_service.connection == datagram.address) {
-          final stateController = _service.controller;
+  void resetConnection() {
+    _service.resetConnection();
+  }
 
-          if (stateController == null) {
-            if (message == Server.state.value) {
-              _setupPlatform(() => GamePage.open(StatePacket(datagram.data)));
-            }
-          } else if (message == Server.update.value) {
-            final packet = UpdatePacket(datagram.data);
-            final updateController = updateControllerList[packet.update.index];
+  void requestAction(GameAction action, List<int> data) {
+    _service.requestAction(action, data);
+  }
 
-            if (updateController != null) {
-              updateController.add(packet.data);
-            }
-          } else {
-            stateController.add(StatePacket(datagram.data));
+  void requestState(GameState state) {
+    _service.requestState(state);
+  }
+
+  void requestUpdate(GameUpdate update) {
+    _service.requestUpdate(update);
+  }
+}
+
+class StreamService {
+  StreamService(
+    this._socket,
+    this._stream, {
+    required this.open,
+  }) {
+    _stream.listen(_onData);
+  }
+
+  final RawDatagramSocket _socket;
+  final Stream<Datagram?> _stream;
+
+  final controller = StreamController<ConnectionPacket>();
+
+  final void Function(StatePacket packet) open;
+
+  final update = List<StreamController<UpdatePacket>?>.filled(
+    GameUpdate.values.length,
+    null,
+  );
+
+  InternetAddress? connection;
+  StreamController<StatePacket>? state;
+
+  void _onData(Datagram? event) {
+    final datagram = event;
+
+    if (datagram != null && datagram.data.isNotEmpty) {
+      final message = datagram.data[0];
+
+      if (message < 4) {
+        controller.add(ConnectionPacket(datagram));
+      } else if (connection == datagram.address) {
+        final stateController = state;
+
+        if (stateController == null) {
+          if (message == Server.state.value) {
+            _setupPlatform(() => open(StatePacket(datagram.data)));
           }
+        } else if (message == Server.update.value) {
+          final packet = UpdatePacket(datagram.data);
+          final updateController = update[packet.update.index];
+
+          if (updateController != null) {
+            updateController.add(packet);
+          }
+        } else {
+          stateController.add(StatePacket(datagram.data));
         }
       }
     }
   }
 
   Future<void> _setupPlatform(void Function() onSuccess) async {
-    _service.controller = StreamController<StatePacket>();
+    state = StreamController<StatePacket>();
 
-    final value = await Connection.setAddress(connection);
+    final result = await Connection.setAddress(connection!);
 
-    if (value != null) {
+    if (result != null) {
       onSuccess();
+    } else {
+      controller.add(ConnectionPacket.problem('platform issue'));
+      resetConnection();
     }
   }
 
-  void broadcastGamepad() {
+  void broadcastGamepad(List<int> code) async {
     _socket.broadcastEnabled = true;
     _socket.send(
-      <int>[Client.broadcast.value, 255, 255, 255, 255],
-      InternetAddress('255.255.255.255'),
+      <int>[Client.broadcast.value, ...code],
+      Connection.broadcast,
       Connection.port,
     );
     _socket.broadcastEnabled = false;
   }
 
-  void selectConnection(InternetAddress address) {
-    _service.connection = address;
+  void selectConnection(InternetAddress address) async {
+    connection = address;
 
     _socket.send(
-      <int>[Client.state.value],
+      <int>[Client.action.value, GameAction.getState.index],
       address,
       Connection.port,
     );
+
+    // timer to reset connection if there is no response
+    // controller.add(ConnectionPacket.problem('no response'));
+    // connection = null;
   }
 
   void resetConnection() {
-    controller.close();
-    _service.controller = null;
-    _service.connection = null;
+    connection = null;
+
+    state?.close();
+    state = null;
+
+    for (int i = 0; i < update.length; i++) {
+      update[i]?.close();
+      update[i] = null;
+    }
+  }
+
+  void requestAction(GameAction action, List<int> data) {
+    _sendRequest(<int>[
+      Client.action.value,
+      action.index,
+      ...data,
+    ]);
+  }
+
+  void requestState(GameState state) {
+    _sendRequest(<int>[
+      Client.state.value,
+      state.index,
+    ]);
+  }
+
+  void requestUpdate(GameUpdate update) {
+    _sendRequest(<int>[
+      Client.update.value,
+      update.index,
+    ]);
+  }
+
+  void _sendRequest(List<int> data) async {
+    final address = connection;
+
+    if (address != null) {
+      _socket.send(
+        data,
+        address,
+        Connection.port,
+      );
+    }
   }
 }

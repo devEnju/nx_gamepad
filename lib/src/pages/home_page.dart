@@ -3,14 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../layouts/connection_layout.dart';
+import '../layouts/problem_layout.dart';
 
-import '../models/server_packet.dart';
+import '../models/protocol.dart';
 
 import '../pages/game_page.dart';
 
 import '../providers/stream_provider.dart';
-
-import '../utils/protocol.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,22 +40,26 @@ class _HomePageState extends State<HomePage> {
         stream: _provider.controller.stream,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            final packet = snapshot.data!;
+            final ConnectionPacket packet = snapshot.data!;
 
             if (packet.action == Server.info.value) {
               _addresses.add(packet.address);
             } else if (packet.action == Server.quit.value) {
               if (_provider.connection == packet.address) {
-                GamePage.close(context);
+                GamePage.close();
               }
               _addresses.remove(packet.address);
+            } else {
+              _addresses.clear();
+
+              return ProblemLayout(packet.data);
             }
           }
           return ConnectionLayout(_addresses);
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _provider.broadcastGamepad(),
+        onPressed: () => _provider.broadcastGamepad(<int>[255, 255, 255]),
         child: const Icon(Icons.broadcast_on_home),
       ),
     );
