@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 
 import '../models/protocol.dart';
 
+import '../pages/game_page.dart';
+
 import '../utils/connection.dart';
 
 class StreamProvider extends InheritedWidget {
@@ -17,6 +19,7 @@ class StreamProvider extends InheritedWidget {
   final StreamService _service;
 
   StreamController<ConnectionPacket> get controller => _service.controller;
+  Stream<bool> get broadcast => _service.broadcast.stream;
 
   InternetAddress? get connection => _service.connection;
   Stream<StatePacket>? get stream => _service.state?.stream;
@@ -32,8 +35,12 @@ class StreamProvider extends InheritedWidget {
   @override
   bool updateShouldNotify(InheritedWidget oldWidget) => false;
 
-  void broadcastGamepad(List<int> code) {
-    _service.broadcastGamepad(code);
+  void startBroadcast(List<int> code) {
+    _service.startBroadcast(code);
+  }
+
+  void stopBroadcast() {
+    _service.stopBroadcast();
   }
 
   void selectConnection(InternetAddress address) {
@@ -58,7 +65,7 @@ class StreamProvider extends InheritedWidget {
 }
 
 class StreamService {
-  StreamService(
+  StreamService.mock(
     this._socket,
     this._stream, {
     required this.open,
@@ -66,10 +73,21 @@ class StreamService {
     _stream.listen(_onData);
   }
 
+  factory StreamService(RawDatagramSocket socket) {
+    return StreamService.mock(
+      socket,
+      socket.map<Datagram?>(
+        (event) => (event == RawSocketEvent.read) ? socket.receive() : null,
+      ),
+      open: GamePage.open,
+    );
+  }
+
   final RawDatagramSocket _socket;
   final Stream<Datagram?> _stream;
 
   final controller = StreamController<ConnectionPacket>();
+  final broadcast = StreamController<bool>();
 
   final void Function(StatePacket packet) open;
 
@@ -81,6 +99,9 @@ class StreamService {
   InternetAddress? connection;
   StreamController<StatePacket>? state;
 
+  late Timer _periodic;
+  late Timer _timeout;
+
   void _onData(Datagram? event) {
     final datagram = event;
 
@@ -88,25 +109,30 @@ class StreamService {
       final message = datagram.data[0];
 
       if (message < 4) {
-        controller.add(ConnectionPacket(datagram));
+        _addConnectionPacket(ConnectionPacket(datagram));
       } else if (connection == datagram.address) {
-        final stateController = state;
-
-        if (stateController == null) {
-          if (message == Server.state.value) {
-            _setupPlatform(() => open(StatePacket(datagram.data)));
-          }
-        } else if (message == Server.update.value) {
-          final packet = UpdatePacket(datagram.data);
-          final updateController = update[packet.update.index];
-
-          if (updateController != null) {
-            updateController.add(packet);
-          }
-        } else {
-          stateController.add(StatePacket(datagram.data));
-        }
+        _handleOtherPackets(message, datagram.data);
       }
+    }
+  }
+
+  void _addConnectionPacket(ConnectionPacket packet) {
+    controller.add(packet);
+  }
+
+  void _handleOtherPackets(int message, List<int> data) {
+    final StreamController<StatePacket>? controller = state;
+
+    if (controller == null) {
+      if (message == Server.state.value) {
+        stopBroadcast();
+        _timeout.cancel();
+        _setupPlatform(() => open(StatePacket(data)));
+      }
+    } else if (message == Server.update.value) {
+      _addUpdatePacket(UpdatePacket(data));
+    } else {
+      _addStatePacket(StatePacket(data));
     }
   }
 
@@ -123,7 +149,34 @@ class StreamService {
     }
   }
 
-  void broadcastGamepad(List<int> code) async {
+
+  void _addUpdatePacket(UpdatePacket packet) {
+    final StreamSink<UpdatePacket>? sink = update[packet.update.index];
+
+    if (sink != null) {
+      sink.add(packet);
+    }
+  }
+
+  void _addStatePacket(StatePacket packet) {
+    state!.add(packet);
+  }
+
+  void startBroadcast(List<int> code) {
+    _broadcastGamepad(code);
+    _periodic = Timer.periodic(
+      const Duration(seconds: 3),
+      (timer) => _broadcastGamepad(code),
+    );
+    broadcast.add(true);
+  }
+
+  void stopBroadcast() {
+    _periodic.cancel();
+    broadcast.add(false);
+  }
+
+  void _broadcastGamepad(List<int> code) {
     _socket.broadcastEnabled = true;
     _socket.send(
       <int>[Client.broadcast.value, ...code],
@@ -133,7 +186,7 @@ class StreamService {
     _socket.broadcastEnabled = false;
   }
 
-  void selectConnection(InternetAddress address) async {
+  void selectConnection(InternetAddress address) {
     connection = address;
 
     _socket.send(
@@ -142,9 +195,10 @@ class StreamService {
       Connection.port,
     );
 
-    // timer to reset connection if there is no response
-    // controller.add(ConnectionPacket.problem('no response'));
-    // connection = null;
+    _timeout = Timer(const Duration(seconds: 3), () {
+      controller.add(ConnectionPacket.problem('no response'));
+      connection = null;
+    });
   }
 
   void resetConnection() {
@@ -181,7 +235,7 @@ class StreamService {
     ]);
   }
 
-  void _sendRequest(List<int> data) async {
+  void _sendRequest(List<int> data) {
     final address = connection;
 
     if (address != null) {

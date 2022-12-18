@@ -66,5 +66,5 @@ enum GameState {
 }
 
 enum GameUpdate {
-  namedUpdate,
+  time,
 }

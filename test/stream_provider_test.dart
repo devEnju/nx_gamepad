@@ -14,7 +14,7 @@ void main() {
   setUp(() async {
     controller = StreamController<Datagram?>();
 
-    service = StreamService(
+    service = StreamService.mock(
       await RawDatagramSocket.bind(Connection.loopback, 0),
       controller.stream,
       open: (packet) {},

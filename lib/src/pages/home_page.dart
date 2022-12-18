@@ -11,6 +11,8 @@ import '../pages/game_page.dart';
 
 import '../providers/stream_provider.dart';
 
+import '../widgets/broadcast_button.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -58,10 +60,7 @@ class _HomePageState extends State<HomePage> {
           return ConnectionLayout(_addresses);
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _provider.broadcastGamepad(<int>[255, 255, 255]),
-        child: const Icon(Icons.broadcast_on_home),
-      ),
+      floatingActionButton: const BroadcastButton(),
     );
   }
 }

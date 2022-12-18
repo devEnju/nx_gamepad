@@ -6,8 +6,6 @@ import 'package:flutter/widgets.dart';
 
 import 'src/app.dart';
 
-import 'src/pages/game_page.dart';
-
 import 'src/providers/stream_provider.dart';
 
 Future<void> main() async {
@@ -22,13 +20,7 @@ Future<void> main() async {
 
   runApp(
     StreamProvider(
-      StreamService(
-        socket,
-        socket.map<Datagram?>(
-          (event) => (event == RawSocketEvent.read) ? socket.receive() : null,
-        ),
-        open: GamePage.open,
-      ),
+      StreamService(socket),
       child: const App(),
     ),
   );
