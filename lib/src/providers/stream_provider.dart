@@ -24,7 +24,7 @@ class StreamProvider extends InheritedWidget {
   InternetAddress? get connection => _service.connection;
   Stream<StatePacket>? get stream => _service.state?.stream;
 
-  Stream<UpdatePacket>? operator [](int i) => _service.update[i]?.stream;
+  Stream<UpdatePacket>? operator [](int i) => _service.update?[i]?.stream;
 
   static StreamProvider of(BuildContext context) {
     final result = context.dependOnInheritedWidgetOfExactType<StreamProvider>();
@@ -91,13 +91,9 @@ class StreamService {
 
   final void Function(StatePacket packet) open;
 
-  final update = List<StreamController<UpdatePacket>?>.filled(
-    GameUpdate.values.length,
-    null,
-  );
-
   InternetAddress? connection;
   StreamController<StatePacket>? state;
+  List<StreamController<UpdatePacket>?>? update;
 
   late Timer _periodic;
   late Timer _timeout;
@@ -138,6 +134,10 @@ class StreamService {
 
   Future<void> _setupPlatform(void Function() onSuccess) async {
     state = StreamController<StatePacket>();
+    update = List<StreamController<UpdatePacket>?>.filled(
+      GameUpdate.values.length,
+      null,
+    );
 
     final result = await Connection.setAddress(connection!);
 
@@ -149,9 +149,8 @@ class StreamService {
     }
   }
 
-
   void _addUpdatePacket(UpdatePacket packet) {
-    final StreamSink<UpdatePacket>? sink = update[packet.update.index];
+    final StreamSink<UpdatePacket>? sink = update![packet.update.index];
 
     if (sink != null) {
       sink.add(packet);
@@ -207,9 +206,9 @@ class StreamService {
     state?.close();
     state = null;
 
-    for (int i = 0; i < update.length; i++) {
-      update[i]?.close();
-      update[i] = null;
+    for (int i = 0; i < (update?.length ?? 0); i++) {
+      update![i]?.close();
+      update![i] = null;
     }
   }
 

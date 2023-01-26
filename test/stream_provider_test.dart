@@ -36,7 +36,7 @@ void main() {
 
         expect(service.state, null);
 
-        for (var element in service.update) {
+        for (var element in service.update!) {
           expect(element, null);
         }
       },
@@ -91,7 +91,7 @@ void main() {
     );
 
     test(
-      'Receiving valid message before connection yields an event to connection stream',
+      'Receiving valid message before connection, yields an event to connection stream',
       () async {
         controller.add(Datagram(
           Uint8List.fromList(<int>[0]),

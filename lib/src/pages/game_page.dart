@@ -13,15 +13,19 @@ import '../providers/stream_provider.dart';
 import '../utils/connection.dart';
 
 class GamePage extends StatefulWidget {
-  const GamePage(this.initial, {super.key});
+  const GamePage(this.initial, {super.key, this.duration});
 
   final StatePacket initial;
+  final Duration? duration;
 
   static void open(StatePacket packet) {
     WidgetsBinding.instance.addPostFrameCallback(
       (timeStamp) => Navigator.of(App.context!).push(
         MaterialPageRoute(
-          builder: (context) => GamePage(packet),
+          builder: (context) => GamePage(
+            packet,
+            duration: const Duration(seconds: 10),
+          ),
         ),
       ),
     );
@@ -54,7 +58,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void _initTimer() {
     _screen = true;
     _timer = Timer(
-      const Duration(seconds: 10),
+      widget.duration!,
       () => _toggleScreenBrightness(false),
     );
   }
@@ -78,6 +82,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             if (snapshot.hasData) {
               final StatePacket packet = snapshot.data!;
 
+              // TODO pull Game dependency out
               switch (packet.state) {
                 case GameState.menu:
                   return MenuLayout(packet.data);
