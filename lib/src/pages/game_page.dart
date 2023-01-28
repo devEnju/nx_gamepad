@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../app.dart';
-
-import '../layouts/menu_layout.dart';
-
+import '../models/game.dart';
 import '../models/protocol.dart';
 
 import '../providers/stream_provider.dart';
@@ -13,29 +10,11 @@ import '../providers/stream_provider.dart';
 import '../utils/connection.dart';
 
 class GamePage extends StatefulWidget {
-  const GamePage(this.initial, {super.key, this.duration});
+  const GamePage(this.game, this.initial, {super.key, this.duration});
 
+  final Game game;
   final StatePacket initial;
   final Duration? duration;
-
-  static void open(StatePacket packet) {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (timeStamp) => Navigator.of(App.context!).push(
-        MaterialPageRoute(
-          builder: (context) => GamePage(
-            packet,
-            duration: const Duration(seconds: 10),
-          ),
-        ),
-      ),
-    );
-  }
-
-  static void close() {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (timeStamp) => Navigator.of(App.context!).pop(),
-    );
-  }
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -80,17 +59,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
           stream: _provider.stream,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
-              final StatePacket packet = snapshot.data!;
-
-              // TODO pull Game dependency out
-              switch (packet.state) {
-                case GameState.menu:
-                  return MenuLayout(packet.data);
-                default:
-                  return ErrorWidget.withDetails(
-                    message: 'Received unkown state',
-                  );
-              }
+              widget.game.buildLayout(snapshot.data!);
             }
             return ErrorWidget.withDetails(
               message: 'Stream is null',

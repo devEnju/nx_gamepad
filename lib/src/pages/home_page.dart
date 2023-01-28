@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 import '../layouts/connection_layout.dart';
 import '../layouts/problem_layout.dart';
 
+import '../models/game.dart';
 import '../models/protocol.dart';
-
-import '../pages/game_page.dart';
 
 import '../providers/stream_provider.dart';
 
@@ -48,7 +47,11 @@ class _HomePageState extends State<HomePage> {
               _addresses.add(packet.address);
             } else if (packet.action == Server.quit.value) {
               if (_provider.connection == packet.address) {
-                GamePage.close();
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (timeStamp) => Navigator.of(context).popUntil(
+                    (route) => route.isFirst,
+                  ),
+                );
               }
               _addresses.remove(packet.address);
             } else {
@@ -60,7 +63,9 @@ class _HomePageState extends State<HomePage> {
           return ConnectionLayout(_addresses);
         },
       ),
-      floatingActionButton: const BroadcastButton(),
+      floatingActionButton: BroadcastButton(
+        game: GameExample(context, <int>[255, 255, 255]),
+      ),
     );
   }
 }

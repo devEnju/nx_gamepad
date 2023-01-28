@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/game.dart';
+
 import '../providers/stream_provider.dart';
 
 class BroadcastButton extends StatefulWidget {
-  const BroadcastButton({super.key});
+  const BroadcastButton({super.key, required this.game});
+
+  final Game game;
 
   @override
   State<BroadcastButton> createState() => _BroadcastButtonState();
@@ -37,7 +41,7 @@ class _BroadcastButtonState extends State<BroadcastButton> {
           );
         }
         return FloatingActionButton(
-          onPressed: () => _provider.startBroadcast(<int>[255, 255, 255]),
+          onPressed: () => _provider.startBroadcast(widget.game),
           child: const Icon(Icons.broadcast_on_home),
         );
       },

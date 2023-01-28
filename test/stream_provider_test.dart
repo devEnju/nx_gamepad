@@ -17,7 +17,6 @@ void main() {
     service = StreamService.mock(
       await RawDatagramSocket.bind(Connection.loopback, 0),
       controller.stream,
-      open: (packet) {},
     );
   });
 
@@ -35,10 +34,7 @@ void main() {
         expect(await connection, true);
 
         expect(service.state, null);
-
-        for (var element in service.update!) {
-          expect(element, null);
-        }
+        expect(service.update, null);
       },
     );
 

@@ -19,19 +19,19 @@ class ConnectionPacket {
 
 class StatePacket {
   StatePacket(List<int> data)
-      : state = GameState.values[data[1]],
+      : state = data[1],
         data = data.sublist(2);
 
-  final GameState state;
+  final int state;
   final List<int> data;
 }
 
 class UpdatePacket {
   UpdatePacket(List<int> data)
-      : update = GameUpdate.values[data[1]],
+      : update = data[1],
         data = data.sublist(2);
 
-  final GameUpdate update;
+  final int update;
   final List<int> data;
 }
 
@@ -55,16 +55,4 @@ enum Server {
   const Server(this.value);
 
   final int value;
-}
-
-enum GameAction {
-  getState,
-}
-
-enum GameState {
-  menu,
-}
-
-enum GameUpdate {
-  time,
 }
