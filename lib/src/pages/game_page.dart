@@ -80,7 +80,9 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.inactive) {
-      Navigator.of(context).pop();
+      Navigator.of(context).popUntil(
+        (route) => route.isFirst,
+      );
     }
   }
 

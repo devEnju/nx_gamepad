@@ -24,6 +24,14 @@ abstract class Game {
     );
   }
 
+  void closePage() {
+    WidgetsBinding.instance.addPostFrameCallback(
+      (timeStamp) => Navigator.of(context).popUntil(
+        (route) => route.isFirst,
+      ),
+    );
+  }
+
   Widget buildLayout(StatePacket packet);
 }
 

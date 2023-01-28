@@ -1,16 +1,10 @@
 import 'dart:io';
 
-import '../utils/connection.dart';
-
 class ConnectionPacket {
   ConnectionPacket(Datagram datagram)
       : address = datagram.address,
         action = datagram.data[0],
         data = String.fromCharCodes(datagram.data.sublist(1));
-
-  ConnectionPacket.problem(this.data)
-      : address = Connection.loopback,
-        action = 0;
 
   final InternetAddress address;
   final int action;

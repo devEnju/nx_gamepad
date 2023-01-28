@@ -17,8 +17,9 @@ class StreamProvider extends InheritedWidget {
 
   final StreamService _service;
 
-  StreamController<ConnectionPacket> get controller => _service.controller;
+  StreamController<InternetAddress> get controller => _service.controller;
   Stream<bool> get broadcast => _service.broadcast.stream;
+  Set<InternetAddress> get addresses => _service.addresses;
 
   InternetAddress? get connection => _service.connection;
   Stream<StatePacket>? get stream => _service.state?.stream;
@@ -83,8 +84,10 @@ class StreamService {
   final RawDatagramSocket _socket;
   final Stream<Datagram?> _stream;
 
-  final controller = StreamController<ConnectionPacket>();
+  final controller = StreamController<InternetAddress>();
   final broadcast = StreamController<bool>();
+
+  final Set<InternetAddress> addresses = {};
 
   Game? _game;
 
@@ -102,18 +105,24 @@ class StreamService {
       final message = datagram.data[0];
 
       if (message < 4) {
-        _addConnectionPacket(ConnectionPacket(datagram));
+        _handleConnectionPackets(ConnectionPacket(datagram));
       } else if (connection == datagram.address) {
-        _handleOtherPackets(message, datagram.data);
+        _handleGamePackets(message, datagram.data);
       }
     }
   }
 
-  void _addConnectionPacket(ConnectionPacket packet) {
-    controller.add(packet);
+  void _handleConnectionPackets(ConnectionPacket packet) {
+    if (packet.action == Server.info.value) {
+      if (addresses.add(packet.address)) controller.add(packet.address);
+    } else if (packet.action == Server.quit.value) {
+      if (connection == packet.address) _game?.closePage();
+
+      if (addresses.remove(packet.address)) controller.add(packet.address);
+    }
   }
 
-  void _handleOtherPackets(int message, List<int> data) {
+  void _handleGamePackets(int message, List<int> data) {
     final StreamController<StatePacket>? controller = state;
 
     if (controller == null) {
@@ -200,7 +209,9 @@ class StreamService {
 
   void resetConnection({String? reason}) {
     if (reason != null) {
-      controller.add(ConnectionPacket.problem(reason));
+      addresses.remove(connection);
+
+      controller.addError(FlutterError(reason));
     }
 
     _game = null;
