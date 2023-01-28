@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../providers/stream_provider.dart';
 
-class ConnectionLayout extends StatefulWidget {
-  const ConnectionLayout(
+class ConnectionList extends StatefulWidget {
+  const ConnectionList(
     this.addresses, {
     super.key,
   });
@@ -13,10 +13,10 @@ class ConnectionLayout extends StatefulWidget {
   final Set<InternetAddress> addresses;
 
   @override
-  State<ConnectionLayout> createState() => _ConnectionLayoutState();
+  State<ConnectionList> createState() => _ConnectionListState();
 }
 
-class _ConnectionLayoutState extends State<ConnectionLayout> {
+class _ConnectionListState extends State<ConnectionList> {
   late final StreamProvider _provider;
 
   @override

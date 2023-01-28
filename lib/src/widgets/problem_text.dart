@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ProblemLayout extends StatelessWidget {
-  const ProblemLayout(this.text, {super.key});
+class ProblemText extends StatelessWidget {
+  const ProblemText(this.text, {super.key});
 
   final String text;
 

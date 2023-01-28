@@ -10,11 +10,16 @@ import '../providers/stream_provider.dart';
 import '../utils/connection.dart';
 
 class GamePage extends StatefulWidget {
-  const GamePage(this.game, this.initial, {super.key, this.duration});
+  const GamePage(
+    this.game,
+    this.initial, {
+    super.key,
+    Duration? duration,
+  }) : duration = duration ?? const Duration(seconds: 10);
 
   final Game game;
   final StatePacket initial;
-  final Duration? duration;
+  final Duration duration;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -37,7 +42,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void _initTimer() {
     _screen = true;
     _timer = Timer(
-      widget.duration!,
+      widget.duration,
       () => _toggleScreenBrightness(false),
     );
   }
@@ -62,7 +67,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
               widget.game.buildLayout(snapshot.data!);
             }
             return ErrorWidget.withDetails(
-              message: 'Stream is null',
+              message: 'stream is null',
             );
           },
         ),

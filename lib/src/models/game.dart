@@ -18,11 +18,7 @@ abstract class Game {
     WidgetsBinding.instance.addPostFrameCallback(
       (timeStamp) => Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => GamePage(
-            this,
-            packet,
-            duration: const Duration(seconds: 10),
-          ),
+          builder: (context) => GamePage(this, packet),
         ),
       ),
     );
