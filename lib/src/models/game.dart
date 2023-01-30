@@ -48,7 +48,7 @@ class GameExample extends Game {
         return MenuLayout(packet.data);
       default:
         return ErrorWidget.withDetails(
-          message: 'Received unkown state',
+          message: 'received unkown state',
         );
     }
   }

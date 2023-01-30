@@ -166,20 +166,26 @@ class StreamService {
     state!.add(packet);
   }
 
+  // TODO stop broadcast in start function if it is already broadcasting
+  // only one widget should be able to subscribe to a broadcast at a time
   void startBroadcast(Game game) {
-    _game = game;
+    if (connection == null) {
+      _game = game;
 
-    _broadcastGamepad(game.code);
-    _periodic = Timer.periodic(
-      const Duration(seconds: 3),
-      (timer) => _broadcastGamepad(game.code),
-    );
-    broadcast.add(true);
+      _broadcastGamepad(game.code);
+      _periodic = Timer.periodic(
+        const Duration(seconds: 3),
+        (timer) => _broadcastGamepad(game.code),
+      );
+      broadcast.add(true);
+    }
   }
 
   void stopBroadcast() {
-    _periodic.cancel();
-    broadcast.add(false);
+    if (_game != null) {
+      _periodic.cancel();
+      broadcast.add(false);
+    }
   }
 
   void _broadcastGamepad(List<int> code) {
@@ -192,19 +198,22 @@ class StreamService {
     _socket.broadcastEnabled = false;
   }
 
+  // TODO maybe let user be able to choose another connection before timeout
   void selectConnection(InternetAddress address) {
-    connection = address;
+    if (connection == null) {          
+      connection = address;
 
-    _socket.send(
-      <int>[Client.action.value, 0],
-      address,
-      Connection.port,
-    );
+      _socket.send(
+        <int>[Client.action.value, 0],
+        address,
+        Connection.port,
+      );
 
-    _timeout = Timer(
-      const Duration(seconds: 3),
-      () => resetConnection(reason: 'no response'),
-    );
+      _timeout = Timer(
+        const Duration(seconds: 3),
+        () => resetConnection(reason: 'no response'),
+      );
+    }
   }
 
   void resetConnection({String? reason}) {

@@ -64,7 +64,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
           stream: _provider.stream,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
-              widget.game.buildLayout(snapshot.data!);
+              return widget.game.buildLayout(snapshot.data!);
             }
             return ErrorWidget.withDetails(
               message: 'stream is null',
