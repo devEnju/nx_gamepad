@@ -43,10 +43,7 @@ class _HomePageState extends State<HomePage> {
         },
       ),
       floatingActionButton: BroadcastButton(
-        game: GameExample(
-          context,
-          <int>[255, 255, 255],
-        ),
+        game: GameExample(context),
       ),
     );
   }

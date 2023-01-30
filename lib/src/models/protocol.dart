@@ -1,13 +1,17 @@
 import 'dart:io';
 
+import 'game.dart';
+
 class ConnectionPacket {
   ConnectionPacket(Datagram datagram)
       : address = datagram.address,
-        action = datagram.data[0],
-        data = String.fromCharCodes(datagram.data.sublist(1));
+        message = datagram.data[0],
+        code = datagram.data.sublist(1, 4),
+        data = String.fromCharCodes(datagram.data.sublist(4));
 
   final InternetAddress address;
-  final int action;
+  final int message;
+  final List<int> code;
   final String data;
 }
 
@@ -29,6 +33,15 @@ class UpdatePacket {
   final List<int> data;
 }
 
+class ActionPacket {
+  ActionPacket(List<int> data)
+      : action = GamepadAction.values[data[1]],
+        data = data.sublist(2);
+
+  final GamepadAction action;
+  final List<int> data;
+}
+
 enum Client {
   action(1),
   broadcast(3),
@@ -44,7 +57,9 @@ enum Server {
   info(1),
   quit(2),
   state(4),
-  update(6);
+  update(6),
+  action(8),
+  unknown(0);
 
   const Server(this.value);
 

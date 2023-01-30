@@ -18,7 +18,6 @@ class StreamProvider extends InheritedWidget {
   final StreamService _service;
 
   StreamController<InternetAddress> get controller => _service.controller;
-  Stream<bool> get broadcast => _service.broadcast.stream;
   Set<InternetAddress> get addresses => _service.addresses;
 
   InternetAddress? get connection => _service.connection;
@@ -35,16 +34,16 @@ class StreamProvider extends InheritedWidget {
   @override
   bool updateShouldNotify(InheritedWidget oldWidget) => false;
 
-  void startBroadcast(Game game) {
-    _service.startBroadcast(game);
+  void startBroadcast(Game game, [void Function()? onStop]) {
+    _service.startBroadcast(game, onStop);
   }
 
   void stopBroadcast() {
     _service.stopBroadcast();
   }
 
-  void selectConnection(InternetAddress address) {
-    _service.selectConnection(address);
+  void selectConnection(InternetAddress address, [void Function()? onChange]) {
+    _service.selectConnection(address, onChange);
   }
 
   void resetConnection() {
@@ -85,24 +84,25 @@ class StreamService {
   final Stream<Datagram?> _stream;
 
   final controller = StreamController<InternetAddress>();
-  final broadcast = StreamController<bool>();
 
   final Set<InternetAddress> addresses = {};
 
   Game? _game;
+  Timer? _periodic;
+  Timer? _timeout;
+
+  void Function()? _onBroadcastStop;
+  void Function()? _onSelectionChange;
 
   InternetAddress? connection;
   StreamController<StatePacket>? state;
   List<StreamController<UpdatePacket>?>? update;
 
-  late Timer _periodic;
-  late Timer _timeout;
-
   void _onData(Datagram? event) {
-    final datagram = event;
+    final Datagram? datagram = event;
 
     if (datagram != null && datagram.data.isNotEmpty) {
-      final message = datagram.data[0];
+      final int message = datagram.data[0];
 
       if (message < 4) {
         _handleConnectionPackets(ConnectionPacket(datagram));
@@ -113,26 +113,36 @@ class StreamService {
   }
 
   void _handleConnectionPackets(ConnectionPacket packet) {
-    if (packet.action == Server.info.value) {
-      if (addresses.add(packet.address)) controller.add(packet.address);
-    } else if (packet.action == Server.quit.value) {
-      if (connection == packet.address) _game?.closePage();
-
-      if (addresses.remove(packet.address)) controller.add(packet.address);
+    if (_game?.compareCode(packet.code) != null) {
+      if (packet.message == Server.info.value) {
+        _addAddress(packet.address);
+      } else if (packet.message == Server.quit.value) {
+        _removeAddress(packet.address);
+      }
     }
   }
 
-  void _handleGamePackets(int message, List<int> data) {
-    final StreamController<StatePacket>? controller = state;
+  void _addAddress(InternetAddress address) {
+    if (addresses.add(address)) controller.add(address);
+  }
 
-    if (controller == null) {
+  void _removeAddress(InternetAddress address) {
+    if (connection == address) _game?.closePage();
+
+    if (addresses.remove(address)) controller.add(address);
+  }
+
+  void _handleGamePackets(int message, List<int> data) {
+    if (state == null) {
       if (message == Server.state.value) {
         stopBroadcast();
-        _timeout.cancel();
+        _timeout!.cancel();
         _setupPlatform(StatePacket(data));
       }
     } else if (message == Server.update.value) {
       _addUpdatePacket(UpdatePacket(data));
+    } else if (message == Server.action.value) {
+      Connection.platformAction(ActionPacket(data));
     } else {
       _addStatePacket(StatePacket(data));
     }
@@ -166,26 +176,28 @@ class StreamService {
     state!.add(packet);
   }
 
-  // TODO stop broadcast in start function if it is already broadcasting
-  // only one widget should be able to subscribe to a broadcast at a time
-  void startBroadcast(Game game) {
+  void startBroadcast(Game game, [void Function()? onStop]) {
     if (connection == null) {
+      if (_game != game) {
+        addresses.clear();
+      }
       _game = game;
+
+      stopBroadcast();
 
       _broadcastGamepad(game.code);
       _periodic = Timer.periodic(
         const Duration(seconds: 3),
         (timer) => _broadcastGamepad(game.code),
       );
-      broadcast.add(true);
+      _onBroadcastStop = onStop;
     }
   }
 
   void stopBroadcast() {
-    if (_game != null) {
-      _periodic.cancel();
-      broadcast.add(false);
-    }
+    _periodic?.cancel();
+    _onBroadcastStop?.call();
+    _onBroadcastStop = null;
   }
 
   void _broadcastGamepad(List<int> code) {
@@ -198,10 +210,12 @@ class StreamService {
     _socket.broadcastEnabled = false;
   }
 
-  // TODO maybe let user be able to choose another connection before timeout
-  void selectConnection(InternetAddress address) {
-    if (connection == null) {          
+  void selectConnection(InternetAddress address, [void Function()? onChange]) {
+    if (connection != address) {
       connection = address;
+
+      _timeout?.cancel();
+      _onSelectionChange?.call();
 
       _socket.send(
         <int>[Client.action.value, 0],
@@ -210,9 +224,10 @@ class StreamService {
       );
 
       _timeout = Timer(
-        const Duration(seconds: 3),
+        const Duration(seconds: 5),
         () => resetConnection(reason: 'no response'),
       );
+      _onSelectionChange = onChange;
     }
   }
 
@@ -222,8 +237,6 @@ class StreamService {
 
       controller.addError(FlutterError(reason));
     }
-
-    _game = null;
 
     connection = null;
 
@@ -259,7 +272,7 @@ class StreamService {
   }
 
   void _sendRequest(List<int> data) {
-    final address = connection;
+    final InternetAddress? address = connection;
 
     if (address != null) {
       _socket.send(

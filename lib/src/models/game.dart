@@ -14,6 +14,13 @@ abstract class Game {
 
   int get gameUpdates;
 
+  Game? compareCode(List<int> other) {
+    for (int i = 0; i < code.length; i++) {
+      if (code[i] != other[i]) return null;
+    }
+    return this;
+  }
+
   void openPage(StatePacket packet) {
     WidgetsBinding.instance.addPostFrameCallback(
       (timeStamp) => Navigator.of(context).push(
@@ -35,8 +42,15 @@ abstract class Game {
   Widget buildLayout(StatePacket packet);
 }
 
+enum GamepadAction {
+  rumble,
+}
+
+
+const List<int> _code = [255, 255, 255];
+
 class GameExample extends Game {
-  const GameExample(super.context, super.code);
+  const GameExample(BuildContext context) : super(context, _code);
 
   @override
   int get gameUpdates => GameUpdate.values.length;

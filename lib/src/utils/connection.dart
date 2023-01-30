@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import '../models/protocol.dart';
+
 // const _eventChannel = EventChannel('com.marvinvogl.nx_gamepad/event');
 const _methodChannel = MethodChannel('com.marvinvogl.nx_gamepad/method');
 
@@ -27,6 +29,8 @@ class Connection {
   static Future<bool?> toggleScreenBrightness(bool state) {
     return state ? _platform('turnScreenOn') : _platform('turnScreenOff');
   }
+
+  static void platformAction(ActionPacket packet) {}
 
   static Future<T?> _platform<T>(
     String method, {

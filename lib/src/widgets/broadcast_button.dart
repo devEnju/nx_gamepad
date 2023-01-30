@@ -16,6 +16,14 @@ class BroadcastButton extends StatefulWidget {
 class _BroadcastButtonState extends State<BroadcastButton> {
   late final StreamProvider _provider;
 
+  late bool _state;
+
+  @override
+  void initState() {
+    super.initState();
+    _state = false;
+  }
+
   @override
   void didChangeDependencies() {
     _provider = StreamProvider.of(context);
@@ -24,27 +32,34 @@ class _BroadcastButtonState extends State<BroadcastButton> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<bool>(
-      initialData: false,
-      stream: _provider.broadcast,
-      builder: (context, snapshot) {
-        if (snapshot.data!) {
-          return FloatingActionButton(
-            onPressed: () => _provider.stopBroadcast(),
-            child: const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.0,
-              ),
-            ),
-          );
-        }
-        return FloatingActionButton(
-          onPressed: () => _provider.startBroadcast(widget.game),
-          child: const Icon(Icons.broadcast_on_home),
-        );
-      },
+    if (_state) {
+      return FloatingActionButton(
+        onPressed: _stopBroadcast,
+        child: const Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2.0,
+          ),
+        ),
+      );
+    }
+    return FloatingActionButton(
+      onPressed: _startBroadcast,
+      child: const Icon(Icons.broadcast_on_home),
     );
+  }
+
+  void _startBroadcast() {
+    _provider.startBroadcast(widget.game, _onBroadcastStop);
+    setState(() => _state = true);
+  }
+
+  void _stopBroadcast() {
+    _provider.stopBroadcast();
+  }
+
+  void _onBroadcastStop() {
+    setState(() => _state = false);
   }
 }
