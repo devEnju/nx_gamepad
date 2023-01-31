@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import '../models/game.dart';
 import '../models/protocol.dart';
 
 // const _eventChannel = EventChannel('com.marvinvogl.nx_gamepad/event');
@@ -30,7 +31,14 @@ class Connection {
     return state ? _platform('turnScreenOn') : _platform('turnScreenOff');
   }
 
-  static void platformAction(ActionPacket packet) {}
+  static void gamepadAction(ActionPacket packet) {
+    switch (packet.action) {
+      case GamepadAction.rumble:
+        break;
+      default:
+        break;
+    }
+  }
 
   static Future<T?> _platform<T>(
     String method, {

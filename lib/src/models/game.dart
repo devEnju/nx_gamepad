@@ -12,9 +12,13 @@ abstract class Game {
   final BuildContext context;
   final List<int> code;
 
-  int get gameUpdates;
+  int get states;
+  int get updates;
 
   Game? compareCode(List<int> other) {
+    if (code.length != other.length) {
+      return null;
+    }
     for (int i = 0; i < code.length; i++) {
       if (code[i] != other[i]) return null;
     }
@@ -53,17 +57,16 @@ class GameExample extends Game {
   const GameExample(BuildContext context) : super(context, _code);
 
   @override
-  int get gameUpdates => GameUpdate.values.length;
+  int get states => GameState.values.length;
+
+  @override
+  int get updates => GameUpdate.values.length;
 
   @override
   Widget buildLayout(StatePacket packet) {
     switch (GameState.values[packet.state]) {
       case GameState.menu:
         return MenuLayout(packet.data);
-      default:
-        return ErrorWidget.withDetails(
-          message: 'received unkown state',
-        );
     }
   }
 }

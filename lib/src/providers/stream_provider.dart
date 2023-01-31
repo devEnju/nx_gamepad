@@ -105,9 +105,9 @@ class StreamService {
       final int message = datagram.data[0];
 
       if (message < 4) {
-        _handleConnectionPackets(ConnectionPacket(datagram));
+        _handleConnectionPackets(ConnectionPacket.buffer(datagram));
       } else if (connection == datagram.address) {
-        _handleGamePackets(message, datagram.data);
+        _handleGamePackets(GamePacket.buffer(datagram.data));
       }
     }
   }
@@ -127,53 +127,61 @@ class StreamService {
   }
 
   void _removeAddress(InternetAddress address) {
-    if (connection == address) _game?.closePage();
+    if (connection == address) _game!.closePage();
 
     if (addresses.remove(address)) controller.add(address);
   }
 
-  void _handleGamePackets(int message, List<int> data) {
+  void _handleGamePackets(GamePacket packet) {
     if (state == null) {
-      if (message == Server.state.value) {
+      if (packet.message == Server.state.value) {
         stopBroadcast();
         _timeout!.cancel();
-        _setupPlatform(StatePacket(data));
+        _setupPlatform(StatePacket(packet));
       }
-    } else if (message == Server.update.value) {
-      _addUpdatePacket(UpdatePacket(data));
-    } else if (message == Server.action.value) {
-      Connection.platformAction(ActionPacket(data));
-    } else {
-      _addStatePacket(StatePacket(data));
+    } else if (packet.message == Server.state.value) {
+      _addStatePacket(packet);
+    } else if (packet.message == Server.update.value) {
+      _addUpdatePacket(packet);
+    } else if (packet.message == Server.action.value) {
+      Connection.gamepadAction(ActionPacket(packet));
     }
   }
 
   Future<void> _setupPlatform(StatePacket packet) async {
     state = StreamController<StatePacket>();
     update = List<StreamController<UpdatePacket>?>.filled(
-      _game?.gameUpdates ?? 0,
+      _game!.updates,
       null,
     );
 
     final result = await Connection.setAddress(connection!);
 
     if (result != null) {
-      _game?.openPage(packet);
+      _game!.openPage(packet);
     } else {
       resetConnection(reason: 'platform issue');
     }
   }
 
-  void _addUpdatePacket(UpdatePacket packet) {
-    final StreamSink<UpdatePacket>? sink = update![packet.update];
-
-    if (sink != null) {
-      sink.add(packet);
+  void _addStatePacket(GamePacket packet) {
+    if (packet.value < _game!.states) {
+      state!.add(StatePacket(packet));
+    } else {
+      assert(false, 'received unkown state ${packet.value}');
     }
   }
 
-  void _addStatePacket(StatePacket packet) {
-    state!.add(packet);
+  void _addUpdatePacket(GamePacket packet) {
+    if (packet.value < _game!.updates) {
+      final StreamSink<UpdatePacket>? sink = update![packet.value];
+
+      if (sink != null) {
+        sink.add(UpdatePacket(packet));
+      }
+    } else {
+      assert(false, 'received unkown update ${packet.value}');
+    }
   }
 
   void startBroadcast(Game game, [void Function()? onStop]) {
@@ -218,7 +226,7 @@ class StreamService {
       _onSelectionChange?.call();
 
       _socket.send(
-        <int>[Client.action.value, 0],
+        <int>[Client.touch.value, 0],
         address,
         Connection.port,
       );
@@ -251,7 +259,7 @@ class StreamService {
 
   void requestAction(Enum action, List<int> data) {
     _sendRequest(<int>[
-      Client.action.value,
+      Client.touch.value,
       action.index,
       ...data,
     ]);
