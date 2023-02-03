@@ -24,6 +24,7 @@ The input events are sent via UDP over Wi-Fi from either the *FlutterClient* or 
  - Flutter method channel to `set` and `reset` a local address
  - Flutter method channel to `toggle` screen brightness to save battery and do not cause burn-ins
  - Flutter method channel to `update` all settings like turning off gyro data packets
+ - Flutter method channel to `perform` an action like rumble effect
  - Platform informs Flutter about the success of those method channels
  - Flutter event channel to also `receive` specific input events as a stream
 
@@ -46,7 +47,7 @@ Touch events on the *FlutterClient* can vary widely and should issue action requ
 
 |Bitmask Byte [0]|Byte [1]|  Message|Description|
 |---------------:|-------:|:-------:|-----------|
-|        `0b0001`|     `x`|    touch|Sends individual data to a server in order to get a new state. The `x` marks what action needs to be performed on the server, so that each one can have different amounts of additional bytes.|
+|        `0b0001`|     `x`|   action|Sends individual data to a server in order to get a new state. The `x` marks what action needs to be performed on the server, so that each one can have different amounts of additional bytes.|
 |        `0b0011`|   `n/a`|broadcast|The client should send a unique code after the bitmask as a broadcast, which should only be recognised by one specific game, and then wait for the answers from different compatible servers in the local network.|
 |        `0b0101`|     `x`|    state|This bit sequence tells the server to send all necessary information for the requested state and signals it to be changed. Each value for `x` stands for an individual state and could be interpreted as a specific user interface.|
 |        `0b1001`|     `x`|   update|The last bit sequence from a client toggles a frequent update stream for single purpose widgets on or off. The `x` tells which update is meant and should be used, if updating the whole state of a user interface is too expensive.|
@@ -59,7 +60,7 @@ Touch events on the *FlutterClient* can vary widely and should issue action requ
 |        `0b0010`|   `n/a`|   quit|The server can quit the connection to a client and add additional information for its reason.|
 |        `0b0100`|     `x`|  state|Answer to a specific state change request with the same `x` value as a response and all other necessary additional bytes to build a new user interface from scratch.|
 |        `0b1000`|     `x`| update|Frequent stream of data to a specific widget, with `x` as a label to the specific update, and the latest bytes required to change it.|
-|        `0b1100`|     `x`| action|Action to be performed on the gamepad. The byte `x` stands for a single action like rumble for example.|
+|        `0b1100`|     `x`| effect|There is an effect to be performed on the gamepad. The byte `x` stands for a single action like rumble or sound effect.|
 
 The *HomePage* of the *FlutterClient* deals with all incoming UDP messages from a server with streams, and redirects state changes to a separate stream onto the *GamePage*. In order to have a better separation between business logic and views, streams should probably be in their own class, as individual updates need to be funneled through the *HomePage* to the specific part of *GamePage* layout.
 

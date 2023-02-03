@@ -64,6 +64,7 @@ class StreamProvider extends InheritedWidget {
 }
 
 class StreamService {
+  @visibleForTesting
   StreamService.mock(
     this._socket,
     this._stream,
@@ -105,18 +106,29 @@ class StreamService {
       final int message = datagram.data[0];
 
       if (message < 4) {
-        _handleConnectionPackets(ConnectionPacket.buffer(datagram));
+        assert(
+          datagram.data.length >= 4,
+          'received invalid packet for message $message',
+        );
+
+        handleConnectionPackets(ConnectionPacket.buffer(datagram));
       } else if (connection == datagram.address) {
-        _handleGamePackets(GamePacket.buffer(datagram.data));
+        assert(
+          datagram.data.length >= 2,
+          'received invalid packet for message $message',
+        );
+
+        handleGamePackets(GamePacket.buffer(datagram.data));
       }
     }
   }
 
-  void _handleConnectionPackets(ConnectionPacket packet) {
+  @visibleForTesting
+  void handleConnectionPackets(ConnectionPacket packet) {
     if (_game?.compareCode(packet.code) != null) {
-      if (packet.message == Server.info.value) {
+      if (packet.message == Server.info) {
         _addAddress(packet.address);
-      } else if (packet.message == Server.quit.value) {
+      } else if (packet.message == Server.quit) {
         _removeAddress(packet.address);
       }
     }
@@ -132,29 +144,34 @@ class StreamService {
     if (addresses.remove(address)) controller.add(address);
   }
 
-  void _handleGamePackets(GamePacket packet) {
+  @visibleForTesting
+  void handleGamePackets(GamePacket packet) {
     if (state == null) {
-      if (packet.message == Server.state.value) {
+      if (packet.message == Server.state) {
         stopBroadcast();
         _timeout!.cancel();
-        _setupPlatform(StatePacket(packet));
+        _setupStreams();
+        setupPlatform(StatePacket(packet));
       }
-    } else if (packet.message == Server.state.value) {
+    } else if (packet.message == Server.state) {
       _addStatePacket(packet);
-    } else if (packet.message == Server.update.value) {
+    } else if (packet.message == Server.update) {
       _addUpdatePacket(packet);
-    } else if (packet.message == Server.action.value) {
-      Connection.gamepadAction(ActionPacket(packet));
+    } else if (packet.message == Server.effect) {
+      performGameEffect(packet);
     }
   }
 
-  Future<void> _setupPlatform(StatePacket packet) async {
+  void _setupStreams() {
     state = StreamController<StatePacket>();
     update = List<StreamController<UpdatePacket>?>.filled(
       _game!.updates,
       null,
     );
+  }
 
+  @visibleForTesting
+  Future<void> setupPlatform(StatePacket packet) async {
     final result = await Connection.setAddress(connection!);
 
     if (result != null) {
@@ -165,23 +182,34 @@ class StreamService {
   }
 
   void _addStatePacket(GamePacket packet) {
+    assert(
+      packet.value < _game!.states,
+      'received unknown state ${packet.value}',
+    );
+
     if (packet.value < _game!.states) {
       state!.add(StatePacket(packet));
-    } else {
-      assert(false, 'received unkown state ${packet.value}');
     }
   }
 
   void _addUpdatePacket(GamePacket packet) {
+    assert(
+      packet.value < _game!.updates,
+      'received unknown update ${packet.value}',
+    );
+
     if (packet.value < _game!.updates) {
       final StreamSink<UpdatePacket>? sink = update![packet.value];
 
       if (sink != null) {
         sink.add(UpdatePacket(packet));
       }
-    } else {
-      assert(false, 'received unkown update ${packet.value}');
     }
+  }
+
+  @visibleForTesting
+  void performGameEffect(GamePacket packet) {
+    Connection.gamepadAction(EffectPacket(packet));
   }
 
   void startBroadcast(Game game, [void Function()? onStop]) {
@@ -211,7 +239,7 @@ class StreamService {
   void _broadcastGamepad(List<int> code) {
     _socket.broadcastEnabled = true;
     _socket.send(
-      <int>[Client.broadcast.value, ...code],
+      <int>[Client.broadcast, ...code],
       Connection.broadcast,
       Connection.port,
     );
@@ -226,7 +254,7 @@ class StreamService {
       _onSelectionChange?.call();
 
       _socket.send(
-        <int>[Client.touch.value, 0],
+        <int>[Client.action, 0],
         address,
         Connection.port,
       );
@@ -255,11 +283,12 @@ class StreamService {
       update![i]?.close();
       update![i] = null;
     }
+    update = null;
   }
 
   void requestAction(Enum action, List<int> data) {
     _sendRequest(<int>[
-      Client.touch.value,
+      Client.action,
       action.index,
       ...data,
     ]);
@@ -267,14 +296,14 @@ class StreamService {
 
   void requestState(Enum state) {
     _sendRequest(<int>[
-      Client.state.value,
+      Client.state,
       state.index,
     ]);
   }
 
   void requestUpdate(Enum update) {
     _sendRequest(<int>[
-      Client.update.value,
+      Client.update,
       update.index,
     ]);
   }
@@ -283,11 +312,7 @@ class StreamService {
     final InternetAddress? address = connection;
 
     if (address != null) {
-      _socket.send(
-        data,
-        address,
-        Connection.port,
-      );
+      _socket.send(data, address, Connection.port);
     }
   }
 }

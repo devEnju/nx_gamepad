@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
+
 import '../utils/connection.dart';
 
 import 'game.dart';
@@ -13,7 +15,6 @@ class ConnectionPacket {
 
   factory ConnectionPacket.buffer(Datagram datagram) {
     if (datagram.data.length < 4) {
-      assert(false, 'received invalid packet for message ${datagram.data[0]}');
       return empty;
     }
     return _buffer
@@ -24,6 +25,8 @@ class ConnectionPacket {
   }
 
   static final _buffer = ConnectionPacket._empty();
+
+  @visibleForTesting
   static final empty = ConnectionPacket._empty();
 
   InternetAddress _address;
@@ -45,7 +48,6 @@ class GamePacket {
 
   factory GamePacket.buffer(List<int> data) {
     if (data.length < 2) {
-      assert(false, 'received invalid packet for message ${data[0]}');
       return empty;
     }
     return _buffer
@@ -55,6 +57,8 @@ class GamePacket {
   }
 
   static final _buffer = GamePacket._empty();
+
+  @visibleForTesting
   static final empty = GamePacket._empty();
 
   int _message;
@@ -80,36 +84,28 @@ class UpdatePacket {
   final List<int> data;
 }
 
-class ActionPacket {
-  ActionPacket(GamePacket packet)
-      : action = packet._value < GamepadAction.values.length
-            ? GamepadAction.values[packet._value]
+class EffectPacket {
+  EffectPacket(GamePacket packet)
+      : effect = packet._value < GameEffect.values.length
+            ? GameEffect.values[packet._value]
             : null,
         data = packet._data;
 
-  final GamepadAction? action;
+  final GameEffect? effect;
   final List<int> data;
 }
 
-enum Client {
-  touch(1),
-  broadcast(3),
-  state(5),
-  update(9);
-
-  const Client(this.value);
-
-  final int value;
+class Client {
+  static const int action = 1;
+  static const int broadcast = 3;
+  static const int state = 5;
+  static const int update = 9;
 }
 
-enum Server {
-  info(1),
-  quit(2),
-  state(4),
-  update(8),
-  action(12);
-
-  const Server(this.value);
-
-  final int value;
+class Server {
+  static const int info = 1;
+  static const int quit = 2;
+  static const int state = 4;
+  static const int update = 8;
+  static const int effect = 12;
 }

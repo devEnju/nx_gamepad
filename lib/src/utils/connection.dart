@@ -31,9 +31,9 @@ class Connection {
     return state ? _platform('turnScreenOn') : _platform('turnScreenOff');
   }
 
-  static void gamepadAction(ActionPacket packet) {
-    switch (packet.action) {
-      case GamepadAction.rumble:
+  static void gamepadAction(EffectPacket packet) {
+    switch (packet.effect) {
+      case GameEffect.rumble:
         break;
       default:
         break;
