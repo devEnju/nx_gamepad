@@ -561,7 +561,7 @@ void main() {
       );
 
       test(
-        'Resetting connection keeps address in addresses',
+        'Resetting connection keeps selected address in addresses',
         () async {
           final address = InternetAddress('192.168.0.2');
 
