@@ -1,7 +1,7 @@
 # nx Gamepad
 This repository aims to sum up the extent of the open-source project **nx Gamepad** which not only provides a Flutter plugin for utilizing platform-specific game controller inputs on an application. Inspired by the Wii U console, the library additionally aims to unlock the potential of using a smartphone as a gamepad for your computer.
 
-In order to showcase and explain this concept in more detail, the [Release page]() lists all of the installable applications and mods for this project. The following sub respositories provide corresponding examples with comprehensive documentation on how to implement such functionality yourself:
+In order to showcase and explain this concept in more detail, the [releases page](https://github.com/devEnju/nx_gamepad/releases) lists all of the installable applications and mods for this project. The following sub respositories provide corresponding examples with comprehensive documentation on how to implement such functionality yourself:
 
  - [n Gamepad - Available Flutter plugin for game development](https://github.com/devEnju/n_gamepad)
  - [tx Gamepad - Concrete implementation of the Flutter plugin](https://github.com/devEnju/tx_gamepad)
@@ -28,7 +28,7 @@ The following diagram illustrates the architecture:
 
 Input events are sent via UDP over Wi-Fi from either the FlutterClient or PlatformClient to a GameServer. The FlutterClient is able to communicate with a dedicated platform to also receive input events, but is mainly focused on managing custom interactions with its user interface. This modular design ensures an easy addition of new platforms and allows to only need to integrate the client once.
 
-For a detailed description of input events and the client-server communication please refer to the [Wiki page]().
+For a detailed description of input events and the client-server communication please refer to the [wiki page](https://github.com/devEnju/nx_gamepad/wiki).
 
 ## Features
  - User interface and interactions only need to be written once
