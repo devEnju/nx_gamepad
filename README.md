@@ -39,7 +39,7 @@ For a detailed description of input events and the client-server communication p
 ## Considerations & Limitations
 While Flutter provides a powerful toolset for 2D UI development, it still has limitations when it comes to 3D models and rendering. Furthermore, the project only focuses on using Wi-Fi for gamepad connections, as it offers higher bandwidth for streaming compared to Bluetooth. Lastly, it is well tested with the Razer Kishi v1 controller for Android but other gamepad peripherals may require additional development.
 
-Fortunately, all those points are able to be worked on and should therefore be crossed off over time. Even Flutter is receiving a new rendering engine called [Impeller](https://github.com/flutter/flutter/wiki/Impeller), which looks very promising to fill in the gap for the 3D related shortcomings.
+Fortunately, all those points are able to be worked on and should therefore be crossed off over time. Even Flutter is receiving a new rendering engine called [Impeller](https://docs.flutter.dev/perf/impeller), which looks very promising to fill in the gap for the 3D related shortcomings.
 
 ## Future Plans
 Planned developments for the **nx Gamepad** project include:
