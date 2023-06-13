@@ -1,3 +1,6 @@
+[submodule "docs"]
+	path = docs
+	url = git@gitlab.local:devEnju/nx_gamepad.git
 [submodule "wiki"]
 	path = wiki
 	url = https://github.com/devEnju/nx_gamepad.wiki.git
