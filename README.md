@@ -10,35 +10,43 @@ In order to showcase and explain this concept in more detail, the [releases page
 
 ## Overview
 
-The project's core is the Flutter plugin, with platform-specific implementations responsible for sending input events from a connected controller to a compatible game. It supports Android devices and has planned support for iPhones and the Steam Deck. New user interfaces and interactions are easily implemented for an application which serves as the gamepad, while games need to integrate to react and respond to the before mentioned events.
+The project's core is the Flutter plugin, with platform-specific implementations responsible for sending input events from a connected controller to a compatible game. It supports Android devices and has planned support for iPhones, the Steam Deck, and the Asus ROG Ally. New user interfaces and interactions are easily implemented for an application which serves as the gamepad, while games need to integrate to react and respond to the before mentioned events.
 
 ## Integration Details
 
-The following diagram illustrates possible communication flows:
+The following diagram illustrates important communication flows:
 
 ```
-+---------------+         +----------------+
-| FlutterClient | <-----/ | PlatformClient |  - Android (working)
-+---------------+         +----------------+
-      |   ˄                       |           - iOS     (planned)
-      |   |                       |           - Linux   (planned)
-      |   |                       |
-      ˅   |                       |
-  +------------+                  |
-  | GameServer | <----------------+
-  +------------+
+   App
++-------------------------------------------------------+
+|                                                       |  - Android (working)
+|   +- Flutter --------+         +- Platform -------+   |
+|   |      Client      | ------- |      Client      |   |  - iOS     (planned)
+|   +------------------+         +------------------+   |  - Linux   (planned)
+|           |  ▲                         |              |  - Windows (planned)
++-----------|--|-------------------------|--------------+
+            |  |                         |
+            |  |                         |
+   Mod      |  |                         |
++-----------|--|-----------+             |
+|           ▼  |           |             |
+|   +- Game -----------+   |             |
+|   |      Server      | ◀---------------+
+|   +------------------+   |
+|                          |
++--------------------------+
 ```
 
-Input events are sent via UDP over the local network from either the Flutter or *PlatformClient* to a *GameServer*. The *FlutterClient* is able to communicate with a dedicated platform integration to also receive input events, but is mainly focused on managing custom interactions with its user interface, which needs to be retrieved according to changes from the server. This modular design ensures an easy addition of new platforms and allows to only need to integrate the client once.
+Input events are sent via UDP over the local network from either the *Flutter* or *Platform Client* to a *Game Server*. *Flutter* is able to communicate with a dedicated *Platform* integration via method channels to also receive input events or confirm that a connection has been established, but is mainly focused on managing custom interactions with its user interface, which needs to be retrieved according to changes from the *Game Server*. This modular design ensures an easy addition of new platforms and allows to only need to integrate the client once.
 
 For a detailed description of input events and the client-server communication please refer to the [wiki page](https://github.com/devEnju/nx_gamepad/wiki) of this repository.
 
-## Features
+## Plugin Features
 
 - User interface and interactions only need to be written once
 - Available connection setup and communication with game servers
 - Support for touch, gyro, button, dpad, joystick, and trigger input events
-- Event channel for input events between platforms and Flutter
+- Event channels for input events between platforms and Flutter
 
 ## Considerations & Limitations
 
@@ -72,4 +80,4 @@ To contribute to any of the previously mentioned repositories, please follow the
 4. Push your changes to your fork
 5. Open a pull request to that repository
 
-We will review your pull request and provide feedback or merge your changes as quickly as possible. If you have questions or need assistance, please do not hesitate to reach out. For problems with specific libraries, use the issue tracker of the respective repository. Feature suggestions can be discussed on the [issues page](https://github.com/devEnju/nx_gamepad/issues) of this one. Your input and help in improving this project are invaluable!
+I will review your pull request and provide feedback or merge your changes as quickly as possible. If you have questions or need assistance, please do not hesitate to reach out. For problems with specific libraries, use the issue tracker of the respective repository. Feature suggestions can be discussed on the [issues page](https://github.com/devEnju/nx_gamepad/issues) of this one. Your input and help in improving this project are invaluable!
